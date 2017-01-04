@@ -2,16 +2,18 @@
 #include <sourcemod>
 
 #define SMRPG_DB "smrpg"
-#define TBL_PLAYERS "players"
-#define TBL_PLAYERUPGRADES "player_upgrades"
-#define TBL_UPGRADES "upgrades"
-#define TBL_SETTINGS "settings"
+#define TBL_PPREFIX "smrpg_"
+#define TBL_PLAYERS TBL_PPREFIX ... "players"
+#define TBL_PLAYERUPGRADES TBL_PPREFIX ... "player_upgrades"
+#define TBL_UPGRADES TBL_PPREFIX ... "upgrades"
+#define TBL_SETTINGS TBL_PPREFIX ... "settings"
 
 #define DBVER_INIT 100       // Initial database version
 #define DBVER_UPDATE_1 101   // Update 01.09.2014. Store steamids in accountid form instead of STEAM_X:Y:Z (steamid column varchar -> int)
+#define DBVER_UPDATE_2 102   // Update 04.01.2016. Add tables prefix and foreign keys to avoid data pollution
 
 // Newest database version
-#define DATABASE_VERSION DBVER_UPDATE_1
+#define DATABASE_VERSION DBVER_UPDATE_2
 
 // How long to wait for a reconnect after a failed connection attempt to the database?
 #define RECONNECT_INTERVAL 360.0
@@ -73,6 +75,7 @@ public void SQL_OnConnect(Database db, const char[] error, any data)
 	else if(StrEqual(sDriverIdent, "sqlite", false))
 	{
 		g_DriverType = Driver_SQLite;
+		SQL_FastQuery(g_hDatabase, "PRAGMA foreign_keys = ON"); // Support of foreign keys with sqlite3
 	}
 	else
 	{
@@ -97,16 +100,6 @@ public void SQL_OnConnect(Database db, const char[] error, any data)
 		return;
 	}
 	
-	// Create the player -> upgrades table.
-	Format(sQuery, sizeof(sQuery), "CREATE TABLE IF NOT EXISTS %s (player_id INTEGER, upgrade_id INTEGER, purchasedlevel INTEGER NOT NULL, selectedlevel INTEGER NOT NULL, enabled INTEGER DEFAULT 1, visuals INTEGER DEFAULT 1, sounds INTEGER DEFAULT 1, PRIMARY KEY(player_id, upgrade_id))%s", TBL_PLAYERUPGRADES, sDefaultCharset);
-	if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
-	{
-		char sError[256];
-		SQL_GetError(g_hDatabase, sError, sizeof(sError));
-		SetFailState("Error creating %s table: %s", TBL_PLAYERUPGRADES, sError);
-		return;
-	}
-	
 	// Create the upgrades table.
 	Format(sQuery, sizeof(sQuery), "CREATE TABLE IF NOT EXISTS %s (upgrade_id INTEGER PRIMARY KEY %s, shortname VARCHAR(32) UNIQUE NOT NULL, date_added INTEGER)%s", TBL_UPGRADES, (g_DriverType == Driver_MySQL ? "AUTO_INCREMENT" : "AUTOINCREMENT"), sDefaultCharset);
 	if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
@@ -114,6 +107,16 @@ public void SQL_OnConnect(Database db, const char[] error, any data)
 		char sError[256];
 		SQL_GetError(g_hDatabase, sError, sizeof(sError));
 		SetFailState("Error creating %s table: %s", TBL_UPGRADES, sError);
+		return;
+	}
+	
+	// Create the player -> upgrades table.
+	Format(sQuery, sizeof(sQuery), "CREATE TABLE IF NOT EXISTS %s (player_id INTEGER, upgrade_id INTEGER, purchasedlevel INTEGER NOT NULL, selectedlevel INTEGER NOT NULL, enabled INTEGER DEFAULT 1, visuals INTEGER DEFAULT 1, sounds INTEGER DEFAULT 1, PRIMARY KEY(player_id, upgrade_id), FOREIGN KEY (player_id) REFERENCES %s(player_id) ON DELETE CASCADE, FOREIGN KEY (upgrade_id) REFERENCES %s(upgrade_id) ON DELETE CASCADE)%s", TBL_PLAYERUPGRADES, TBL_PLAYERS, TBL_UPGRADES, sDefaultCharset);
+	if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
+	{
+		char sError[256];
+		SQL_GetError(g_hDatabase, sError, sizeof(sError));
+		SetFailState("Error creating %s table: %s", TBL_PLAYERUPGRADES, sError);
 		return;
 	}
 	
@@ -278,6 +281,66 @@ void CheckDatabaseVersion()
 			}
 		}
 		
+		if(iVersion < DBVER_UPDATE_2)
+		{
+			char sQuery[512];
+			// Rename the players table with new prefix
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE players RENAME %s", TBL_PLAYERS);
+			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
+			{
+				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
+				return;
+			}
+
+			// Rename the upgrades table with new prefix
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE upgrades RENAME %s", TBL_UPGRADES);
+			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
+			{
+				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
+				return;
+			}
+
+			// Rename the player_upgrades table with new prefix
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE player_upgrades RENAME %s", TBL_PLAYERUPGRADES);
+			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
+			{
+				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
+				return;
+			}
+
+			// Rename the settings table with new prefix
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE settings RENAME %s", TBL_SETTINGS);
+			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
+			{
+				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
+				return;
+			}
+
+			// Deletes lines that should not exist
+			Format(sQuery, sizeof(sQuery), "DELETE FROM %s WHERE player_id NOT IN (SELECT player_id FROM %s) OR upgrade_id NOT IN (SELECT upgrade_id FROM %s)", TBL_PLAYERUPGRADES, TBL_PLAYERS, TBL_UPGRADES);
+			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
+			{
+				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
+				return;
+			}
+
+			// Add foreign key constraint on player_id.
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE %s ADD FOREIGN KEY (player_id) REFERENCES %s(player_id) ON DELETE CASCADE", TBL_PLAYERUPGRADES, TBL_PLAYERS);
+			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
+			{
+				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
+				return;
+			}
+
+			// Add foreign key constraint on upgrade_id.
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE %s ADD FOREIGN KEY (upgrade_id) REFERENCES %s(upgrade_id) ON DELETE CASCADE", TBL_PLAYERUPGRADES, TBL_UPGRADES);
+			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
+			{
+				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
+				return;
+			}
+		}
+
 		// We're on a higher version now.
 		IntToString(DATABASE_VERSION, sValue, sizeof(sValue));
 		SetSetting("version", sValue);
@@ -343,8 +406,6 @@ public int Native_ResetAllPlayers(Handle plugin, int numParams)
 	if(bHardReset)
 	{
 		Transaction hTransaction = new Transaction();
-		Format(sQuery, sizeof(sQuery), "DELETE FROM %s", TBL_PLAYERUPGRADES);
-		hTransaction.AddQuery(sQuery);
 		Format(sQuery, sizeof(sQuery), "DELETE FROM %s", TBL_PLAYERS);
 		hTransaction.AddQuery(sQuery);
 		g_hDatabase.Execute(hTransaction, _, SQLTxn_LogFailure);
@@ -487,10 +548,7 @@ public void SQL_DeleteExpiredPlayers(Database db, DBResultSet results, const cha
 		// Don't delete players who are connected right now.
 		if (GetClientByPlayerID(iPlayerId) != -1)
 			continue;
-		
-		Format(sQuery, sizeof(sQuery), "DELETE FROM %s WHERE player_id = %d", TBL_PLAYERUPGRADES, iPlayerId);
-		hTransaction.AddQuery(sQuery);
-		
+
 		Format(sQuery, sizeof(sQuery), "DELETE FROM %s WHERE player_id = %d", TBL_PLAYERS, iPlayerId);
 		hTransaction.AddQuery(sQuery);
 	}
