@@ -1,7 +1,9 @@
 SM:RPG
 =====
 
-A modular generic RPG plugin for SourceMod 1.6+.
+A modular generic RPG plugin for SourceMod 1.7+.
+
+[![Build Status](https://travis-ci.org/peace-maker/smrpg.svg?branch=master)](https://travis-ci.org/peace-maker/smrpg)
 
 Based on [CSS:RPG](http://forums.alliedmods.net/showthread.php?t=51039) v1.0.5 by SeLfkiLL.
 
@@ -18,27 +20,11 @@ When an upgrade registers itself at the core, it'll automatically be added to th
 
 Server admins can install a new upgrade simply by loading the upgrade plugin.
 
-# Compile requirements
-* [smlib git master](https://github.com/bcserv/smlib)
-* [AutoExecConfig](https://github.com/Impact123/AutoExecConfig)
-* (optional) [DHooks](https://forums.alliedmods.net/showthread.php?t=180114) for Speed+ upgrade
-
 # Installation
-* Compile the core smrpg plugin (see Compile requirements)
-  * Files in the scripting/smrpg and scripting/smrpg_effects folders are included in the respective plugins smrpg.sp and smrpg_effects.sp and mustn't be compiled on their own.
-* If there is a seperate experience module for your game (currently only cstrike), compile and upload that too.
-* Compile all optional features if you want them.
-  * smrpg_resetstats - Automatically reset the stats on different conditions and display next reset date in chat.
-  * smrpg_commandlist - Teach players about different available rpg related chat commands.
-  * smrpg_effects - Central library to apply similar upgrade effects. Required by some upgrades!
-  * smrpg_keyhint_info (On CS:S) - Display rpg stats and more info permanently on the screen.
-  * smrpg_chatxpstats - Display infos in chat about gained experience for a kill or during the whole last life.
-  * smrpg_gifting - Allow players to give other players rpg credits as a gift.
-  * smrpg_turbomode - Increase the experience and credits rate for one map, but don't save the stats. For fun events.
-  * smrpg_antisuicide - Punish players who commit suicide during a fight by taking some experience.
-  * smrpg_disablexp - Admin option to temporarily disable experience for individual players.
-* Compile all the upgrades you want to use
-* Upload the .smx files as well as the configs, gamedata and translations to your gameserver
+* Download the [latest build](http://build.wcfan.de/smrpg/1.8/)
+* Upload the plugins as well as the configs, gamedata and translations folders to your gameserver.
+  * Only upload the plugins/upgrades you want to use. See below for an explanation of each plugin's purpose.
+* (Optional) Install [DHooks](https://forums.alliedmods.net/showthread.php?t=180114) for the Speed+ upgrade.
 * Add a "smrpg" section to your databases.cfg. Both mysql and sqlite are supported.
 
 ```
@@ -48,8 +34,31 @@ Server admins can install a new upgrade simply by loading the upgrade plugin.
 		"database"			"smrpg"
 	}
 ```
-* Start your server. The core config files are generated in [mod]/cfg/sourcemod/ and the config files for the single upgrades in [mod]/cfg/sourcemod/smrpg.
+* Start your server. The core config files are generated in [mod]/cfg/sourcemod/ and the config files for the single upgrades in [mod]/cfg/sourcemod/smrpg. See the Wiki for [a description of convars](https://github.com/peace-maker/smrpg/wiki/ConVar-list).
 * Next to the above generated config files there are additional config files in [mod]/addons/sourcemod/configs/smrpg.
+
+# Compile requirements
+* [smlib git master](https://github.com/bcserv/smlib)
+* [AutoExecConfig](https://github.com/Impact123/AutoExecConfig)
+* (optional) [DHooks](https://forums.alliedmods.net/showthread.php?t=180114) for Speed+ upgrade
+* (optional) [Chat Processor](https://forums.alliedmods.net/showthread.php?t=286913) *OR* [Simple Chat Processor](https://forums.alliedmods.net/showthread.php?t=198501) and [ColorVariables](https://forums.alliedmods.net/showthread.php?t=267743) for the Chat Tags module
+
+# Compile instructions
+* Compile the core smrpg plugin (see Compile requirements)
+  * Files in the scripting/smrpg and scripting/smrpg_effects folders are included in the respective plugins smrpg.sp and smrpg_effects.sp and mustn't be compiled on their own.
+* If there is a seperate experience module for your game (currently only cstrike), compile and upload that too.
+* Compile all optional features if you want them.
+  * smrpg_antisuicide - Punish players who commit suicide during a fight by taking some experience.
+  * smrpg_chattags - Add RPG level and/or rank in front of chat messages.
+  * smrpg_chatxpstats - Display infos in chat about gained experience for a kill or during the whole last life.
+  * smrpg_commandlist - Teach players about different available rpg related chat commands.
+  * smrpg_disablexp - Admin option to temporarily disable experience for individual players.
+  * smrpg_effects - Central library to apply similar upgrade effects. Required by some upgrades!
+  * smrpg_gifting - Allow players to give other players rpg credits as a gift.
+  * smrpg_keyhint_info - Display rpg stats and more info permanently on the screen.
+  * smrpg_resetstats - Automatically reset the stats on different conditions and display next reset date in chat.
+  * smrpg_turbomode - Increase the experience and credits rate for one map, but don't save the stats. For fun events.
+* Compile all the upgrades you want to use
 
 # API
 Developers can easily add new upgrades using the extensive API provided by the core.
