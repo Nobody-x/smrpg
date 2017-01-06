@@ -285,7 +285,7 @@ void CheckDatabaseVersion()
 		{
 			char sQuery[512];
 			// Rename the players table with new prefix
-			Format(sQuery, sizeof(sQuery), "ALTER TABLE players RENAME %s", TBL_PLAYERS);
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE players ENGINE=InnoDB, RENAME %s", TBL_PLAYERS);
 			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
 			{
 				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
@@ -293,7 +293,7 @@ void CheckDatabaseVersion()
 			}
 
 			// Rename the upgrades table with new prefix
-			Format(sQuery, sizeof(sQuery), "ALTER TABLE upgrades RENAME %s", TBL_UPGRADES);
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE upgrades ENGINE=InnoDB, RENAME %s", TBL_UPGRADES);
 			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
 			{
 				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
@@ -301,7 +301,7 @@ void CheckDatabaseVersion()
 			}
 
 			// Rename the player_upgrades table with new prefix
-			Format(sQuery, sizeof(sQuery), "ALTER TABLE player_upgrades RENAME %s", TBL_PLAYERUPGRADES);
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE player_upgrades ENGINE=InnoDB, RENAME %s", TBL_PLAYERUPGRADES);
 			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
 			{
 				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);
@@ -309,7 +309,7 @@ void CheckDatabaseVersion()
 			}
 
 			// Rename the settings table with new prefix
-			Format(sQuery, sizeof(sQuery), "ALTER TABLE settings RENAME %s", TBL_SETTINGS);
+			Format(sQuery, sizeof(sQuery), "ALTER TABLE settings ENGINE=InnoDB, RENAME %s", TBL_SETTINGS);
 			if(!SQL_LockedFastQuery(g_hDatabase, sQuery))
 			{
 				FailDatabaseUpdateError(DBVER_UPDATE_2, sQuery);

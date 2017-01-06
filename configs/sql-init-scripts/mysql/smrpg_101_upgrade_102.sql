@@ -1,8 +1,8 @@
 -- rename tables to add prefix
-ALTER TABLE players RENAME smrpg_players;
-ALTER TABLE upgrades RENAME smrpg_upgrades;
-ALTER TABLE player_upgrades RENAME smrpg_player_upgrades;
-ALTER TABLE settings RENAME smrpg_settings;
+ALTER TABLE players ENGINE=InnoDB, RENAME smrpg_players;
+ALTER TABLE upgrades ENGINE=InnoDB, RENAME smrpg_upgrades;
+ALTER TABLE player_upgrades ENGINE=InnoDB, RENAME smrpg_player_upgrades;
+ALTER TABLE settings ENGINE=InnoDB, RENAME smrpg_settings;
 
 -- Deletes lines that should not exist
 DELETE FROM smrpg_player_upgrades WHERE player_id NOT IN (SELECT player_id FROM smrpg_players) OR upgrade_id NOT IN (SELECT upgrade_id FROM smrpg_upgrades);
