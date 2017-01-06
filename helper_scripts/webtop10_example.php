@@ -1,9 +1,10 @@
 <?php
 // Change to your database setup.
-$dbhost = "localhost"; // The IP of your mysql server
-$dbuser = "youruser"; // The mysql user
-$dbpw   = "yourpassword"; // The mysql password
-$dbname = "smrpg"; // The database name
+$dbhost   = "localhost"; // The IP of your mysql server
+$dbuser   = "youruser"; // The mysql user
+$dbpw     = "yourpassword"; // The mysql password
+$dbname   = "smrpg"; // The database name
+$dbprefix = "smrpg_"; // The tables prefix
 ?>
 
 <!DOCTYPE html>
@@ -31,13 +32,13 @@ $dbname = "smrpg"; // The database name
 			$db->set_charset('utf8');
 			
 			// Get top 10 players
-			$q = $db->query('SELECT player_id, name, (cast(\'76561197960265728\' as unsigned) + steamid) as steamid64, level, experience, credits, lastseen, lastreset FROM players ORDER BY level DESC, experience DESC LIMIT 10');
+			$q = $db->query('SELECT player_id, name, (cast(\'76561197960265728\' as unsigned) + steamid) as steamid64, level, experience, credits, lastseen, lastreset FROM '.$dbprefix.'players ORDER BY level DESC, experience DESC LIMIT 10');
 			$players = array();
 			while ($player = $q->fetch_object()) {
 				
 				// fetch upgrade info of upgrades the player bought.
 				$player->upgrades = array();
-				$upgr_res = $db->query('SELECT u.shortname, pu.purchasedlevel, pu.selectedlevel FROM player_upgrades pu INNER JOIN upgrades u ON u.upgrade_id = pu.upgrade_id WHERE pu.player_id = ' . (int) $player->player_id . ' AND pu.purchasedlevel > 0 ORDER BY u.shortname');
+				$upgr_res = $db->query('SELECT u.shortname, pu.purchasedlevel, pu.selectedlevel FROM '.$dbprefix.'player_upgrades pu INNER JOIN '.$dbprefix.'upgrades u ON u.upgrade_id = pu.upgrade_id WHERE pu.player_id = ' . (int) $player->player_id . ' AND pu.purchasedlevel > 0 ORDER BY u.shortname');
 				while ($upgrade = $upgr_res->fetch_object()) {
 					$player->upgrades[] = $upgrade;
 				}
@@ -47,7 +48,7 @@ $dbname = "smrpg"; // The database name
 			$q->close();
 			
 			// Get last reset time and reason
-			$q = $db->query('SELECT setting, value FROM settings WHERE setting = "last_reset" OR setting = "reset_reason"');
+			$q = $db->query('SELECT setting, value FROM '.$dbprefix.'settings WHERE setting = "last_reset" OR setting = "reset_reason"');
 			$last_reset = array();
 			while ($setting = $q->fetch_object()) {
 				$last_reset[$setting->setting] = $setting->value;
