@@ -1333,7 +1333,7 @@ public Action Cmd_DBDelPlayer(int client, int args)
 			RemovePlayer(iTarget);
 		
 		hPack.WriteCell(iTarget);
-		Format(sQuery, sizeof(sQuery), "SELECT player_id, name FROM %s WHERE steamid = %d", TBL_PLAYERS, iAccountId);
+		Format(sQuery, sizeof(sQuery), "SELECT player_id, name FROM %s WHERE steamid = %d", g_sTablePlayers, iAccountId);
 		g_hDatabase.Query(SQL_CheckDeletePlayer, sQuery, hPack);
 	}
 	// Match as playerid
@@ -1344,7 +1344,7 @@ public Action Cmd_DBDelPlayer(int client, int args)
 			RemovePlayer(iTarget);
 		
 		hPack.WriteCell(iTarget);
-		Format(sQuery, sizeof(sQuery), "SELECT player_id, name FROM %s WHERE player_id = %d", TBL_PLAYERS, iPlayerID);
+		Format(sQuery, sizeof(sQuery), "SELECT player_id, name FROM %s WHERE player_id = %d", g_sTablePlayers, iPlayerID);
 		g_hDatabase.Query(SQL_CheckDeletePlayer, sQuery, hPack);
 	}
 	// Match as name
@@ -1355,7 +1355,11 @@ public Action Cmd_DBDelPlayer(int client, int args)
 			RemovePlayer(iTarget);
 		
 		hPack.WriteCell(iTarget);
-		Format(sQuery, sizeof(sQuery), "SELECT player_id, name FROM %s WHERE name = '%s'", TBL_PLAYERS, sTarget);
+		
+		char sEscapedName[MAX_NAME_LENGTH*2+1];
+		g_hDatabase.Escape(sTarget, sEscapedName, sizeof(sEscapedName));
+		Format(sQuery, sizeof(sQuery), "SELECT player_id, name FROM %s WHERE name = '%s'", g_sTablePlayers, sEscapedName);
+
 		g_hDatabase.Query(SQL_CheckDeletePlayer, sQuery, hPack);
 	}
 	return Plugin_Handled;
@@ -1408,7 +1412,7 @@ public Action Cmd_DBMassSell(int client, int args)
 	hData.WriteCell(iIndex);
 	
 	char sQuery[128];
-	Format(sQuery, sizeof(sQuery), "SELECT player_id, purchasedlevel FROM %s WHERE upgrade_id = %d AND purchasedlevel > 0", TBL_PLAYERUPGRADES, upgrade[UPGR_databaseId]);
+	Format(sQuery, sizeof(sQuery), "SELECT player_id, purchasedlevel FROM %s WHERE upgrade_id = %d AND purchasedlevel > 0", g_sTablePlayerUpgrades, upgrade[UPGR_databaseId]);
 	g_hDatabase.Query(SQL_MassDeleteItem, sQuery, hData);
 	
 	return Plugin_Handled;
@@ -1447,7 +1451,7 @@ public Action Cmd_DBWrite(int client, int args)
 public Action Cmd_DBStats(int client, int args)
 {
 	char sQuery[512];
-	Format(sQuery, sizeof(sQuery), "SELECT COUNT(*) AS total, (SELECT COUNT(*) FROM %s WHERE lastseen > %d) AS recent, AVG(level) FROM %s", TBL_PLAYERS, GetTime()-432000, TBL_PLAYERS);
+	Format(sQuery, sizeof(sQuery), "SELECT COUNT(*) AS total, (SELECT COUNT(*) FROM %s WHERE lastseen > %d) AS recent, AVG(level) FROM %s", g_sTablePlayers, GetTime()-432000, g_sTablePlayers);
 	DataPack hPack = new DataPack();
 	hPack.WriteCell(client?GetClientSerial(client):0);
 	hPack.WriteCell(GetCmdReplySource());
@@ -1491,7 +1495,7 @@ public void SQL_CheckDeletePlayer(Database db, DBResultSet results, const char[]
 	{
 		char sQuery[128];
 		Transaction hTransaction = new Transaction();
-		Format(sQuery, sizeof(sQuery), "DELETE FROM %s WHERE player_id = %d", TBL_PLAYERS, iPlayerId);
+		Format(sQuery, sizeof(sQuery), "DELETE FROM %s WHERE player_id = %d", g_sTablePlayers, iPlayerId);
 		hTransaction.AddQuery(sQuery);
 		g_hDatabase.Execute(hTransaction, _, SQLTxn_LogFailure);
 		
@@ -1585,14 +1589,14 @@ public void SQL_MassDeleteItem(Database db, DBResultSet results, const char[] er
 			while(iOldLevel > 0)
 				iAddCredits += GetUpgradeCost(iIndex, iOldLevel--);
 			
-			Format(sQuery, sizeof(sQuery), "UPDATE %s SET credits = (credits + %d) WHERE player_id = %d", TBL_PLAYERS, iAddCredits, iPlayerID);
+			Format(sQuery, sizeof(sQuery), "UPDATE %s SET credits = (credits + %d) WHERE player_id = %d", g_sTablePlayers, iAddCredits, iPlayerID);
 			hTransaction.AddQuery(sQuery);
 		}
 		
 		g_hDatabase.Execute(hTransaction, _, SQLTxn_LogFailure);
 		
 		// Reset all players to upgrade level 0
-		Format(sQuery, sizeof(sQuery), "UPDATE %s SET purchasedlevel = 0, selectedlevel = 0 WHERE upgrade_id = %d", TBL_PLAYERUPGRADES, upgrade[UPGR_databaseId]);
+		Format(sQuery, sizeof(sQuery), "UPDATE %s SET purchasedlevel = 0, selectedlevel = 0 WHERE upgrade_id = %d", g_sTablePlayerUpgrades, upgrade[UPGR_databaseId]);
 		g_hDatabase.Query(SQL_DoNothing, sQuery);
 		
 		if(client == 0 || IsClientInGame(client))
@@ -1634,7 +1638,7 @@ public void SQL_PrintPlayerStats(Database db, DBResultSet results, const char[] 
 	}
 	
 	char sQuery[64];
-	Format(sQuery, sizeof(sQuery), "SELECT upgrade_id, shortname FROM %s", TBL_UPGRADES);
+	Format(sQuery, sizeof(sQuery), "SELECT upgrade_id, shortname FROM %s", g_sTableUpgrades);
 	g_hDatabase.Query(SQL_PrintUpgradeStats, sQuery, data);
 }
 
@@ -1672,7 +1676,7 @@ public void SQL_PrintUpgradeStats(Database db, DBResultSet results, const char[]
 		hPack.WriteCell(source);
 		hPack.WriteString(sUpgradeName);
 		
-		Format(sQuery, sizeof(sQuery), "SELECT COUNT(*), AVG(purchasedlevel) FROM %s WHERE upgrade_id = %d AND purchasedlevel > 0", TBL_PLAYERUPGRADES, results.FetchInt(0));
+		Format(sQuery, sizeof(sQuery), "SELECT COUNT(*), AVG(purchasedlevel) FROM %s WHERE upgrade_id = %d AND purchasedlevel > 0", g_sTablePlayerUpgrades, results.FetchInt(0));
 		g_hDatabase.Query(SQL_PrintUpgradeUsage, sQuery, hPack);
 	}
 	delete data;
