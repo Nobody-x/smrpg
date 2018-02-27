@@ -1,0 +1,12 @@
+"Phrases"
+{
+	"adrenaline"
+	{
+		"en"			"Adrenaline"
+	}
+	
+	"adrenaline description"
+	{
+		"en"			"Gain speed for a short time when being shot."
+	}
+}
